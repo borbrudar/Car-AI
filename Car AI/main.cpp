@@ -26,7 +26,7 @@ int main() {
 		if (Keyboard::isKeyPressed(Keyboard::Up))    up = 1; else up = 0;
 		if (Keyboard::isKeyPressed(Keyboard::Down))  down = 1; else down = 0;
 		
-		
+		//TODO move to a separate car.h function
 		float cx = c.shape.getPosition().x, cy = c.shape.getPosition().y, theta = c.shape.getRotation() * (3.14159f / 180.f);
 		Vector2f corner[4];
 		corner[0] = Vector2f(cx - c.shape.getSize().x / 2, cy - c.shape.getSize().y / 2);
@@ -40,27 +40,18 @@ int main() {
 		if (t.isColliding(corner[1], corner[2])) isBlue = true;
 		if (t.isColliding(corner[2], corner[3])) isBlue = true;
 		if (t.isColliding(corner[3], corner[0])) isBlue = true;
-
 		if (isBlue) c.shape.setFillColor(Color::Blue); else c.shape.setFillColor(Color::Red);
-		
-		std::vector<Vertex[2]> col{ 4 };
-		col[0][0].position = corner[0];  col[0][1].position = corner[1];
-		col[1][0].position = corner[1];  col[1][1].position = corner[2];
-		col[2][0].position = corner[2];  col[2][1].position = corner[3];
-		col[3][0].position = corner[3];  col[3][1].position = corner[0];
-	    
+		//----------------------------------------------------
+
+
+		//draw
 		window.clear(Color::Black);
+
 		t.draw(window);
 		c.draw(window, up, down, left, right);
-			for (int i = 0; i < 4; i++) {
-				col[i]->color = Color::Green;
-				window.draw(col[i], 2, Lines);
-			}
 
 		window.display();
 	}
-
-
 	return 0;
 }
 
