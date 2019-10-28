@@ -23,10 +23,11 @@ void Car::draw(RenderWindow & window,bool up, bool down,bool left,bool right)
 
 	shape.setPosition(pos);
 	shape.setRotation(angle * 180 / 3.141592);
-	//window.draw(shape);
+	window.draw(shape);
 
 	//texture
 	car.setPosition(pos);
 	car.setRotation(angle * 180 / 3.141592);
-	window.draw(car);
+	//window.draw(car);
+
 }
