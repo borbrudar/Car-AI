@@ -34,13 +34,15 @@ int main() {
 		corner[2] = Vector2f(cx + c.shape.getSize().x / 2, cy + c.shape.getSize().y / 2);
 		corner[3] = Vector2f(cx - c.shape.getSize().x / 2, cy + c.shape.getSize().y / 2);
 
-		bool isBlue = false;
+		bool didCollide = false;
 		for (int i = 0; i < 4; i++) rotateCorner(cx, cy, theta, corner[i]);
-		if (t.isColliding(corner[0], corner[1])) isBlue = true;
-		if (t.isColliding(corner[1], corner[2])) isBlue = true;
-		if (t.isColliding(corner[2], corner[3])) isBlue = true;
-		if (t.isColliding(corner[3], corner[0])) isBlue = true;
-		if (isBlue) c.shape.setFillColor(Color::Blue); else c.shape.setFillColor(Color::Red);
+		if (t.isColliding(corner[0], corner[1])) didCollide = true;
+		if (t.isColliding(corner[1], corner[2])) didCollide = true;
+		if (t.isColliding(corner[2], corner[3])) didCollide = true;
+		if (t.isColliding(corner[3], corner[0])) didCollide = true;
+		if (didCollide) {
+			c.pos = c.startPos; c.angle = 0.f;
+		}
 		//----------------------------------------------------
 
 

@@ -29,5 +29,4 @@ void Car::draw(RenderWindow & window,bool up, bool down,bool left,bool right)
 	car.setPosition(pos);
 	car.setRotation(angle * 180 / 3.141592);
 	//window.draw(car);
-
 }

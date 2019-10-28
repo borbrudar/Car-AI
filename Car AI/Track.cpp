@@ -33,6 +33,8 @@ bool Track::isColliding(Vector2f p2, Vector2f q2)
 
 void Track::draw(RenderWindow & window)
 {
+	s.setTexture(t);
+	window.draw(s);
 	for (int i = 0; i < trackPart.size(); i++) {
 		window.draw(trackPart[i],2,Lines);
 	}
@@ -62,4 +64,11 @@ int Track::orientation(Vector2f p, Vector2f q, Vector2f r)
 	if (val == 0) return 0;  // colinear 
 
 	return (val > 0) ? 1 : 2; // clock or counterclock wise 
+}
+
+void Track::tp(int &i, int x1, int y1, int x2, int y2)
+{
+	trackPart[i][0] = Vertex(Vector2f(x1, y1));
+	trackPart[i][1] = Vertex(Vector2f(x2, y2));
+	i++;
 }
