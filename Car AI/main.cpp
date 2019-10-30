@@ -20,6 +20,8 @@ int main() {
 	while (window.isOpen()) {
 		while (window.pollEvent(e)) {
 			if (e.type == Event::Closed) window.close();
+			if (e.type == Event::KeyPressed)
+				if(e.key.code == Keyboard::S) t.drawLines = !t.drawLines;
 		}
 		if (Keyboard::isKeyPressed(Keyboard::Left))  left = 1; else left = 0;
 		if (Keyboard::isKeyPressed(Keyboard::Right)) right = 1; else right = 0;
@@ -44,14 +46,14 @@ int main() {
 			c.pos = c.startPos; c.angle = 0.f;
 		}
 		//----------------------------------------------------
-
-
+		//lines rotation and stuff
+		c.update();
+		for (int i = 0; i < c.lines.size(); i++) c.distances[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
 		//draw
 		window.clear(Color::Black);
-
 		t.draw(window);
 		c.draw(window, up, down, left, right);
-
+		//for(int i = 0; i < t.c.size(); i++) window.draw(t.c[i]);
 		window.display();
 	}
 	return 0;

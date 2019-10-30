@@ -133,10 +133,12 @@
   <ItemGroup>
     <ClCompile Include="Car.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Neuron.cpp" />
     <ClCompile Include="Track.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Car.h" />
+    <ClInclude Include="Neuron.h" />
     <ClInclude Include="Track.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

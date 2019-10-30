@@ -1,6 +1,7 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <iostream>
+#include "Neuron.h"
 
 using namespace sf;
 class Car {
@@ -16,15 +17,20 @@ public:
 		car.setScale(shapeSize.x / 450, shapeSize.y / 780);
 		car.setOrigin(shapeSize.x / 2, shapeSize.y / 2);
 
-		shape.setFillColor(Color::Red);
+		shape.setFillColor(Color::Blue);
 		shape.setSize(shapeSize);
 		shape.setOrigin(shapeSize.x /2, shapeSize.y / 2);
 
 		pos = startPos;
+		distances.resize(8);
 	}
 	void draw(RenderWindow &window, bool up, bool down, bool left, bool right);
-
+	void update();
+	void rotateCorner(Vector2f &c1);
+	std::vector<Vertex[2]> lines{ 8 };
 	RectangleShape shape;
 	Texture t;
 	Sprite car;
+	Neuron n;
+	std::vector<float> distances;
 };
