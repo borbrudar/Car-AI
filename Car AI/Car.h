@@ -1,7 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <iostream>
-#include "Neuron.h"
 
 using namespace sf;
 class Car {
@@ -31,6 +30,5 @@ public:
 	RectangleShape shape;
 	Texture t;
 	Sprite car;
-	Neuron n;
 	std::vector<float> distances;
 };

@@ -2,14 +2,6 @@
 
 void Car::draw(RenderWindow & window,bool up, bool down,bool left,bool right)
 {
-	std::vector<int> directions; directions.resize(8);
-	n.decide(distances, directions);
-	if (directions[0] == 1) up = true;
-	if (directions[0] == -1) down = true;
-	if (directions[1] == 1) right = true;
-	if (directions[1] == -1) left = true;
-	directions.resize(0);
-
 	if (up && speed < maxSpeed) {
 		if (speed < 0) speed += dec;
 		else speed += acc;
