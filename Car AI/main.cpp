@@ -7,13 +7,18 @@ using namespace sf;
 
 //function prototypes
 void rotateCorner(float cx, float cy, float theta, Vector2f &c1);
+int reward(Vector2f pos);
 //struct for experience replay
 struct expRep {
+	expRep(std::vector<float> state, std::vector<float> newState, std::vector<float> actions, float reward) :
+		state(state), newState(newState), actions(actions), reward(reward) {};
 	std::vector<float> state;
 	std::vector<float> newState;
 	std::vector<float> actions;
 	float reward;
 };
+
+
 
 int main() {
 	RenderWindow window;
@@ -29,7 +34,7 @@ int main() {
 	Track t;
 	bool right = 0, left = 0, up = 0, down = 0;
 	int iteration = 0, numberOfActions = 0;
-	float epsilon = 1;
+	float epsilon = 1, discount = 0.9f, loss = 0;
 
 	//for epsilon greedy strategy
 	std::random_device rd;
@@ -44,6 +49,10 @@ int main() {
 		if (iteration == 10) {
 			iteration = 0;
 			network.copyNeuron(target_network);
+			//remove xp replay
+			if (xp.size() > 50) {
+				for (int i = 0; i < 10; i++) xp.erase(xp.begin() + i);
+			}
 		}
 		//Check for events
 		while (window.pollEvent(e)) {
@@ -80,17 +89,30 @@ int main() {
 		//Implement the Q-learning alg
 			//Random action
 		if (epsilon > dist(engine)) {
-			//choose an action
-			std::vector<float> actions; actions.resize(8);
+			//store for xp replay
+			std::vector<float> state = c.distances;
+			//choose an actions
+			std::vector<float> actions{ 0,0,0,0 };
+			std::vector<float> maxActions{ 0,0,0,0 };
 			network.decide(c.distances, actions);
+			target_network.decide(c.distances, maxActions);
 			//perform the action
 			if (actions[0] > 1.f) left = true;
 			if (actions[1] > 1.f) right = true;
 			if (actions[2] > 1.f) up = true;
 			if (actions[3] > 1.f) down = true;
 			c.update();
-
-
+			for (int i = 0; i < c.lines.size(); i++) c.distances[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
+			//experience replay
+			std::vector<float> newState = c.distances;
+		    xp.push_back(expRep(state, newState, actions, reward(Vector2f(0, 0))));
+			//loss function 
+			float a = std::max(maxActions[0], maxActions[1]); float b = std::max(maxActions[2], maxActions[3]);
+			float maxQ = std::max(a, b);
+			for (int i = 0; i < actions.size(); i++) {
+				loss += std::pow(reward(Vector2f(0, 0)) + discount * (maxQ - actions[i]), 2);
+			}
+			//TODO implement reward function and gradient to the loss function
 		}//Chosen action
 		else {
 
@@ -99,7 +121,6 @@ int main() {
 		//----------------------------------------------------
 		//lines rotation and stuff
 		{
-		for (int i = 0; i < c.lines.size(); i++) c.distances[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
 		//draw
 		window.clear(Color::Black);
 		t.draw(window);
@@ -124,4 +145,8 @@ void rotateCorner(float cx, float cy, float theta, Vector2f &c1) {
 	float rotatedy1 = (tempx1 * std::sin(theta)) + (tempy1 * std::cos(theta));
 	//translate back
 	c1.x = rotatedx1 + cx, c1.y = rotatedy1 + cy;
+}
+
+int reward(Vector2f pos) {
+	return -1;
 }

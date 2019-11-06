@@ -2,13 +2,13 @@
 
 void Neuron::decide(std::vector<float> inputs, std::vector<float>& outputs)
 {
-	outputs = { 0 };
+	outputs = { 0,0,0,0};
 	//multiply the inputs by the weights
 	for (int i = 0; i < 8; i++) {
-		outputs[0] = weights1[i] * inputs[i];
-		outputs[1] = weights2[i] * inputs[i];
-		outputs[2] = weights3[i] * inputs[i];
-		outputs[3] = weights4[i] * inputs[i];
+		outputs[0] += weights1[i] * inputs[i];
+		outputs[1] += weights2[i] * inputs[i];
+		outputs[2] += weights3[i] * inputs[i];
+		outputs[3] += weights4[i] * inputs[i];
 	}
 	//add bias and sigmoid function
 	for (int i = 0; i < 4; i++) {
