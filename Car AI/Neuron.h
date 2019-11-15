@@ -1,24 +1,25 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <random>
+#include <cmath>
+#include <math.h>
 
 class Neuron {
 public:
 	Neuron() {
-		weights1.resize(8); weights2.resize(8);
-		weights3.resize(8); weights4.resize(8);
+		for (int i = 0; i < weights.size(); i++) weights[i].resize(8);
 		std::random_device rd;
 		std::default_random_engine engine(rd());
-		std::uniform_real_distribution<float> dist(-1, 1);
-		for (int i = 0; i < 8; i++) {
-			weights1[i] = dist(engine);
-			weights2[i] = dist(engine);
-			weights3[i] = dist(engine);
-			weights4[i] = dist(engine);
+		std::uniform_real_distribution<float> dist(-10, 10);
+		for (int i = 0; i < 12; i++) {
+			for (int j = 0; j < 8; j++) {
+				weights[i][j] = dist(engine);
+			}
 		}
 	}
 	void decide(std::vector<float> inputs, std::vector<float> &outputs);
 	void copyNeuron(Neuron &target);
-	std::vector<float> weights1, weights2, weights3, weights4;
-	float bias[4] = { 1,1,1,1 };
+	std::vector<std::vector<float>> weights { 12 };
+	std::vector<float> hiddenLayer{ 0,0,0,0,0,0,0,0 };
+	std::vector<float> bias{ 1,1,1,1,1,1,1,1,1,1,1,1 };
 };

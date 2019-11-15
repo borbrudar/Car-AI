@@ -3,28 +3,37 @@
 void Neuron::decide(std::vector<float> inputs, std::vector<float>& outputs)
 {
 	outputs = { 0,0,0,0};
-	//multiply the inputs by the weights
+	//calculate hidden layer
+	for (int i = 0; i < hiddenLayer.size(); i++) {
+		for (int j = 0; j < 8; j++) {
+			hiddenLayer[i] += weights[i][j] * inputs[i];
+		}
+	}
+	//biases for hidden layer
 	for (int i = 0; i < 8; i++) {
-		outputs[0] += weights1[i] * inputs[i];
-		outputs[1] += weights2[i] * inputs[i];
-		outputs[2] += weights3[i] * inputs[i];
-		outputs[3] += weights4[i] * inputs[i];
+		hiddenLayer[i] += bias[i];
+	}
+	//calculate final layer
+	for (int i = 8; i < 12; i++) {
+		for (int j = 0; j < weights[0].size(); j++) {
+			outputs[i - 8] += hiddenLayer[i - 8] * weights[i][j];
+		}
 	}
 	//add bias and sigmoid function
-	for (int i = 0; i < 4; i++) {
-		outputs[i] += bias[i];
-		outputs[i] = outputs[i] / (1 + std::abs(outputs[i]));//better sigmoid function i guess:  1 / 1 + e^-x
-	}
-	
+	for (int i = 0; i < outputs.size(); i++) {
+		outputs[i] += bias[i + 8];
+		outputs[i] = 1 / (1 + std::pow(2.71828,-outputs[i])); //better sigmoid function i guess:  1 / 1 + e^-x
+	}	
 }
 
 void Neuron::copyNeuron(Neuron & target)
 {
-	for (int i = 0; i < 8; i++) {
-		target.weights1[i] = this->weights1[i];
-		target.weights2[i] = this->weights2[i];
-		target.weights3[i] = this->weights3[i];
-		target.weights4[i] = this->weights4[i];
-		if(i < 4) target.bias[i] = this->bias[i];
+	//copy weights
+	for (int i = 0; i < weights.size(); i++) {
+		for (int j = 12; j < weights[i].size(); j++) {
+			target.weights[j][i] = weights[j][i];
+		}
 	}
+	//copy bias
+	for (int i = 0; i < 12; i++) target.bias[i] = bias[i];
 }

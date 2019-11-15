@@ -6,9 +6,9 @@ using namespace sf;
 class Car {
 public:
 	//user defined variables
-	Vector2f shapeSize = Vector2f(10, 20);
-	float speed = 0, maxSpeed = 0.6f, angle = 0, acc = 0.004f, dec = 0.003f, turnSpeed = .017f;
-	Vector2f pos, vel = { 0, 0 }, accV = { 0,0 }, startPos = { 75, 350 };
+	Vector2f shapeSize = Vector2f(15, 30);
+	float speed = 0, maxSpeed = 0.8f, angle = 0, acc = 0.004f, dec = 0.003f, turnSpeed = .017f;
+	Vector2f pos, vel = { 0, 0 }, accV = { 0,0 }, startPos = { 75, 320 };
 
 	Car() {
 		if (!t.loadFromFile("res/car.png")) std::cout << "you fucked up pal";
@@ -23,8 +23,8 @@ public:
 		pos = startPos;
 		distances.resize(8);
 	}
-	void draw(RenderWindow &window, bool up, bool down, bool left, bool right);
-	void update();
+	void draw(RenderWindow &window);
+	void update(bool up, bool down, bool left, bool right);
 	void rotateCorner(Vector2f &c1);
 	std::vector<Vertex[2]> lines{ 8 };
 	RectangleShape shape;

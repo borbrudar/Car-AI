@@ -37,7 +37,7 @@ void Track::draw(RenderWindow & window)
 	window.draw(s);
 	if (drawLines) {
 		for (int i = 0; i < trackPart.size(); i++) {
-			window.draw(trackPart[i], 2, Lines);
+			//window.draw(trackPart[i], 2, Lines);
 		}
 	}
 }

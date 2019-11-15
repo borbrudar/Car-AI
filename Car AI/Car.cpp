@@ -1,38 +1,16 @@
 #include "Car.h"
 
-void Car::draw(RenderWindow & window,bool up, bool down,bool left,bool right)
+void Car::draw(RenderWindow & window)
 {
-	if (up && speed < maxSpeed) {
-		if (speed < 0) speed += dec;
-		else speed += acc;
-	}
-	if (down && speed > -maxSpeed) {
-		if (speed > 0) speed -= dec; 
-		else speed -= acc;
-	}
-	if (!up && !down) {
-		if (speed - dec > 0) speed -= dec;
-		else if (speed + dec < 0) speed += dec;
-		else speed = 0;
-	}
-	if (right && speed != 0)angle += turnSpeed * (speed / maxSpeed);
-	if (left && speed != 0) angle -= turnSpeed * (speed / maxSpeed);
 
-	pos.x += std::sin(angle) * speed;
-	pos.y -= std::cos(angle) * speed;
-
-	shape.setPosition(pos);
-	shape.setRotation(angle * 180 / 3.141592);
 	window.draw(shape);
 
 	//texture
-	car.setPosition(pos);
-	car.setRotation(angle * 180 / 3.141592);
 	//window.draw(car);
 	//for(int i = 0; i < lines.size(); i++) window.draw(lines[i], 2, Lines);
 }
 
-void Car::update()
+void Car::update(bool up, bool down, bool left, bool right)
 {
 	float cx = shape.getPosition().x, cy = shape.getPosition().y, theta = shape.getRotation() * (3.14159f / 180.f);
 	float sizex = shape.getSize().x / 2; float sizey = shape.getSize().y / 2;
@@ -66,6 +44,33 @@ void Car::update()
 		rotateCorner(lines[i][0].position);
 		rotateCorner(lines[i][1].position);
 	}
+
+	//calculate new positions
+	if (up && speed < maxSpeed) {
+		if (speed < 0) speed += dec;
+		else speed += acc;
+	}
+	if (down && speed > -maxSpeed) {
+		if (speed > 0) speed -= dec;
+		else speed -= acc;
+	}
+	if (!up && !down) {
+		if (speed - dec > 0) speed -= dec;
+		else if (speed + dec < 0) speed += dec;
+		else speed = 0;
+	}
+	if (right && speed != 0)angle += turnSpeed * (speed / maxSpeed);
+	if (left && speed != 0) angle -= turnSpeed * (speed / maxSpeed);
+
+	pos.x += std::sin(angle) * speed;
+	pos.y -= std::cos(angle) * speed;
+
+	shape.setPosition(pos);
+	shape.setRotation(angle * 180 / 3.141592);
+
+	car.setPosition(pos);
+	car.setRotation(angle * 180 / 3.141592);
+
 }
 
 
