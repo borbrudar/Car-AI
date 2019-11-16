@@ -11,8 +11,8 @@ public:
 		std::random_device rd;
 		std::default_random_engine engine(rd());
 		std::uniform_real_distribution<float> dist(-10, 10);
-		for (int i = 0; i < 12; i++) {
-			for (int j = 0; j < 8; j++) {
+		for (int i = 0; i < weights.size(); i++) {
+			for (int j = 0; j < weights[i].size(); j++) {
 				weights[i][j] = dist(engine);
 			}
 		}

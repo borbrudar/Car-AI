@@ -31,7 +31,7 @@ int main() {
 	window.create(VideoMode(800, 600), "Car AI");
 
 	Event e;
-	
+
 	//variables setup
 	std::vector<expRep> xp;
 	Neuron network, target_network;
@@ -40,15 +40,15 @@ int main() {
 	Reward r;
 	bool right = 0, left = 0, up = 0, down = 0;
 	int iteration = 0, replay = -1, descent = 0;
-	float epsilon = 1, discount = 0.9f, loss = 0, lr = 0.1f;
-	int cumulativeReward = 0;
+	float epsilon = 1, discount = 0.9f, loss = 0, lr = 0.004f;
+	int cumulativeReward = 0, timestep = 0;
 	bool randomAction = false;
 
 	//for epsilon greedy strategy
 	std::random_device rd;
 	std::default_random_engine engine(rd());
 	std::uniform_real_distribution<float> dist(0, 1);
- 
+
 	//initialize action vectors
 	std::vector<float> actions{ 0,0,0,0 };
 	std::vector<float> maxActions{ 0,0,0,0 };
@@ -62,7 +62,7 @@ int main() {
 			iteration = 0;
 			network.copyNeuron(target_network);
 			//remove xp replay
-			if (xp.size() > 5000) {
+			if (xp.size() > 15000) {
 				for (int i = 0; i < 5; i++) xp.erase(xp.begin() + i);
 			}
 		}
@@ -100,11 +100,12 @@ int main() {
 		//----------------------------------------------------
 		//Implement the Q-learning alg
 
+
+		for (int i = 0; i < c.lines.size(); i++) c.distances[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
+
 		//store for xp replay (for now just for gradient descent)
 		std::vector<float> state = c.distances;
 		int reward = -1;
-
-		for (int i = 0; i < c.lines.size(); i++) c.distances[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
 
 		//choose action
 		if (epsilon > dist(engine)) {
@@ -140,14 +141,18 @@ int main() {
 
 		c.update(up, down, left, right);
 
-		
+
 		//reward test and line intersection info
 		for (int i = 0; i < c.lines.size(); i++) {
 			c.distances[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
-			if (t.isColliding(corner[0], corner[1])) {r.canInteract = 0; reward = -100;} else reward = -1;
-			if (t.isColliding(corner[0], corner[3])) {r.canInteract = 0; reward = -100;} else reward = -1;
-			if (t.isColliding(corner[1], corner[2])) {r.canInteract = 0; reward = -100;} else reward = -1;
-			if (t.isColliding(corner[2], corner[3])) {r.canInteract = 0; reward = -100;} else reward = -1;
+			if (t.isColliding(corner[0], corner[1])) { r.canInteract = 0; reward = -100; }
+			else reward = -1;
+			if (t.isColliding(corner[0], corner[3])) { r.canInteract = 0; reward = -100; }
+			else reward = -1;
+			if (t.isColliding(corner[1], corner[2])) { r.canInteract = 0; reward = -100; }
+			else reward = -1;
+			if (t.isColliding(corner[2], corner[3])) { r.canInteract = 0; reward = -100; }
+			else reward = -1;
 		}
 		//measure reward (improve lol)
 		if (reward != -100) {
@@ -167,10 +172,10 @@ int main() {
 			}
 		}
 
-		if (reward == -100 || reward == 100000) {
 			//experience replay
 			std::vector<float> newState = { 0,0,0,0,0,0,0,0 };
-			for (int i = 0; i < c.lines.size(); i++) newState[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
+			for
+				(int i = 0; i < c.lines.size(); i++) newState[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
 
 			//max q
 			std::vector<float> newActions = { 0,0,0,0,0,0,0,0 };
@@ -180,16 +185,14 @@ int main() {
 
 			xp.push_back(expRep(state, newState, actions, cumulativeReward, maxQ));
 
-			if (descent >= 7 && reward == -100) { 
-
+			if (descent >= 7 && reward == -100) {
 				descent = 0;
 				cumulativeReward *= discount;
 				float loss2 = cumulativeReward;
 
-
 				//std::sort(xp.begin(), xp.end(), [](const expRep &x, const expRep &y) {return x.reward < y.reward; });
 
-				for (int n = 0; n < 125; n++) {
+				for (int n = 0; n < 300; n++) {
 					std::uniform_int<int> rxp(0, xp.size() - 1);
 					int random = rxp(engine);
 					//i and j for the weight looping, k for actions, h for hidden layer and some other shit aswell
@@ -199,12 +202,12 @@ int main() {
 								for (int h = 0; h < 8; h++) {
 									//actions[i] for 8-12, else neuron activation i > 7 w1
 									if (i > 7)
-										 network.weights[i][j] += lr * weightG1(network.hiddenLayer[h], network.bias[i], network.weights[i][j]);
-									else network.weights[i][j] += lr * weightG2(xp[random].state[h], network.bias[i], network.weights[k + 8][h]);
+										 network.weights[i][j] += lr * -weightG1(network.hiddenLayer[h], network.bias[i], network.weights[i][j]);
+									else network.weights[i][j] += lr * -weightG2(xp[random].state[h], network.bias[i], network.weights[k + 8][h]);
 									//same for the biases
 									if (i > 7)
-										 network.bias[i] += lr * biasG1(network.hiddenLayer[h], network.bias[i], network.weights[i][j]);
-									else network.bias[i] += lr * biasG2(xp[random].state[h], network.bias[i], network.weights[k + 8][h]);
+										 network.bias[i] += lr * -biasG1(network.hiddenLayer[h], network.bias[i], network.weights[i][j]);
+									else network.bias[i] += lr * -biasG2(xp[random].state[h], network.bias[i], network.weights[k + 8][h]);
 
 								}
 						}
@@ -222,21 +225,25 @@ int main() {
 				loss = std::pow(loss2 - loss1, 2);
 				std::cout << loss << std::endl;
 			}
-			else descent++;
-			cumulativeReward = 0;
-		}
-		//----------------------------------------------------
-			//lines rotation and stuff
-			{
-				//draw
-				window.clear(Color::Black);
-				t.draw(window);
-				c.draw(window);
-				for (int i = 0; i < r.rewards.size(); i++) window.draw(r.rewards[i], 2, Lines);
-				//for (int i = 0; i < c.lines.size(); i++) window.draw(c.lines[i], 2, Lines);
-				window.display();
+			else {
+				descent++;
+				cumulativeReward = 0;
 			}
-	}
+
+			
+
+		//----------------------------------------------------
+				//lines rotation and stuff
+		{
+			//draw
+			window.clear(Color::Black);
+			t.draw(window);
+			c.draw(window);
+			for (int i = 0; i < r.rewards.size(); i++) window.draw(r.rewards[i], 2, Lines);
+			//for (int i = 0; i < c.lines.size(); i++) window.draw(c.lines[i], 2, Lines);
+			window.display();
+		}
+    }
 	return 0;
 }
 
