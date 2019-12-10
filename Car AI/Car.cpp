@@ -1,8 +1,8 @@
 #include "Car.h"
 
-void Car::draw(RenderWindow & window)
+void Car::draw(RenderWindow & window, bool isRandom)
 {
-
+	if (isRandom) shape.setFillColor(Color::Blue); else shape.setFillColor(Color::Green);
 	window.draw(shape);
 
 	//texture

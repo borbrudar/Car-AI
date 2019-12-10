@@ -8,10 +8,12 @@ using namespace sf;
 
 //function prototypes
 void rotateCorner(float cx, float cy, float theta, Vector2f &c1);
-float weightG1(float input, float bias, float weight);
-float weightG2(float input, float bias, float weight);
-float biasG1  (float input, float bias, float weight);
-float biasG2  (float input, float bias, float weight);
+float weightG1(float reward, float maxQ, float newS, float input, float bias, float weight);
+float weightG2(float reward, float maxQ, float newS, float input, float bias, float weight, float weight1);
+float weightG3(float reward, float maxQ, float newS, float input, float bias, float weight, float weight1, float weight2);
+float biasG1  (float reward, float maxQ, float newS, float input, float bias, float weight);
+float biasG2  (float reward, float maxQ, float newS, float input, float bias, float weight, float weight1);
+float biasG3  (float reward, float maxQ, float newS, float input, float bias, float weight, float weight1, float weight2);
 float sigmoid(float x);
 
 //struct for experience replay
@@ -24,7 +26,8 @@ expRep(std::vector<float> state, std::vector<float> newState, std::vector<float>
 	float reward, maxQ;
 };
 
-
+//1 parameter less
+float discount = 0.99f;
 
 int main() {
 	RenderWindow window;
@@ -40,9 +43,9 @@ int main() {
 	Reward r;
 	bool right = 0, left = 0, up = 0, down = 0;
 	int iteration = 0, replay = -1, descent = 0;
-	float epsilon = 1, discount = 0.9f, loss = 0, lr = 0.004f;
+	float epsilon = 1, loss = 0, lr = 0.05f;
 	int cumulativeReward = 0, timestep = 0;
-	bool randomAction = false;
+	bool randomAction = false, over = false, isRandom = false;
 
 	//for epsilon greedy strategy
 	std::random_device rd;
@@ -60,9 +63,8 @@ int main() {
 		//update iteration count
 		if (iteration == 20) {
 			iteration = 0;
-			network.copyNeuron(target_network);
 			//remove xp replay
-			if (xp.size() > 15000) {
+			if (xp.size() > 50) {
 				for (int i = 0; i < 5; i++) xp.erase(xp.begin() + i);
 			}
 		}
@@ -95,8 +97,9 @@ int main() {
 			if (t.isColliding(corner[3], corner[0])) didCollide = true;
 			if (didCollide) {
 				c.pos = c.startPos; c.angle = 0.f;
+				c.accV = Vector2f( 0,0 ); c.vel = Vector2f( 0,0 );
 			}
-		}//DONT TOUCH
+		}
 		//----------------------------------------------------
 		//Implement the Q-learning alg
 
@@ -105,12 +108,20 @@ int main() {
 
 		//store for xp replay (for now just for gradient descent)
 		std::vector<float> state = c.distances;
-		int reward = -1;
+		state.push_back(c.pos.x);
+		state.push_back(c.pos.y);
+		state.push_back(c.angle);
+		state.push_back(c.accV.x);
+		state.push_back(c.accV.y);
+		state.push_back(c.vel.x);
+		state.push_back(c.vel.y);
+
+		int reward = -10;
 
 		//choose action
-		if (epsilon > dist(engine)) {
-			if (replay == 60 || replay == -1) {
-				replay = 0;
+		if (timestep == 100 || timestep == 0) {
+			timestep = 1;
+			if (epsilon > dist(engine)) {
 				//choose random actions
 				std::uniform_int_distribution<int> ra(0, 1);
 				actions[0] = ra(engine);
@@ -120,24 +131,27 @@ int main() {
 				randAct = actions;
 
 				//variables update
-				if (epsilon > 0.2f) epsilon -= 0.001f;
+				if (epsilon > 0.1f) epsilon -= 0.001f;
 				std::cout << "epsilon: " << epsilon << std::endl;
-			}
+				isRandom = true;
+			}//Chosen action
 			else {
-				replay++;
-				actions = randAct;
+				//choose an action (for gradient descent n shit)
+				network.decide(state, actions);
+				randAct = actions;
+				isRandom = false;
 			}
-		}//Chosen action
-		else {
-			//choose an action (for gradient descent n shit)
-			network.decide(c.distances, actions);
-			target_network.decide(c.distances, maxActions);
 		}
+		else {
+			//actions = randAct;
+			timestep++;
+		}
+		
 
-		if (actions[0] >= 0.90f) left = true;
-		if (actions[1] >= 0.90f) right = true;
-		if (actions[2] >= 0.90f) up = true;
-		if (actions[3] >= 0.90f) down = true;
+		if (actions[0] >= 0.85f) left = true;
+		if (actions[1] >= 0.85f) right = true;
+		if (actions[2] >= 0.85f) up = true;
+		if (actions[3] >= 0.85f) down = true;
 
 		c.update(up, down, left, right);
 
@@ -145,89 +159,100 @@ int main() {
 		//reward test and line intersection info
 		for (int i = 0; i < c.lines.size(); i++) {
 			c.distances[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
-			if (t.isColliding(corner[0], corner[1])) { r.canInteract = 0; reward = -100; }
-			else reward = -1;
-			if (t.isColliding(corner[0], corner[3])) { r.canInteract = 0; reward = -100; }
-			else reward = -1;
-			if (t.isColliding(corner[1], corner[2])) { r.canInteract = 0; reward = -100; }
-			else reward = -1;
-			if (t.isColliding(corner[2], corner[3])) { r.canInteract = 0; reward = -100; }
-			else reward = -1;
+			if (t.isColliding(corner[0], corner[1])) { r.canInteract = 0; reward = -100000; over = true; } else over = false;
+			if (t.isColliding(corner[0], corner[3])) { r.canInteract = 0; reward = -100000; over = true; } else over = false;
+			if (t.isColliding(corner[1], corner[2])) { r.canInteract = 0; reward = -100000; over = true; }	else over = false;
+			if (t.isColliding(corner[2], corner[3])) { r.canInteract = 0; reward = -100000; over = true; } else over = false;
 		}
 		//measure reward (improve lol)
-		if (reward != -100) {
-			if (r.reward(corner[0], corner[1]) == 10) { reward = 100000;  goto a; }
-			if (r.reward(corner[0], corner[3]) == 10) { reward = 100000;  goto a; }
-			if (r.reward(corner[1], corner[2]) == 10) { reward = 100000;  goto a; }
-			if (r.reward(corner[2], corner[3]) == 10) { reward = 100000;  goto a; }
+		if (!over) {
+			if (r.reward(corner[0], corner[1]) == 10) { reward = 1000;  goto a; }
+			if (r.reward(corner[0], corner[3]) == 10) { reward = 1000;  goto a; }
+			if (r.reward(corner[1], corner[2]) == 10) { reward = 1000;  goto a; }
+			if (r.reward(corner[2], corner[3]) == 10) { reward = 1000;  goto a; }
 		}
 	a:
 		cumulativeReward += reward;
 
-		for (int i = 0; i < 12; i++) {
-			for (int j = 0; j < 8; j++) {
-				if (!(network.weights[i][j] == network.weights[i][j])) {
-					int c = 0;
-				}
-			}
-		}
-
+		if ((timestep == 100) || over) {
+			timestep = 0; 
 			//experience replay
-			std::vector<float> newState = { 0,0,0,0,0,0,0,0 };
-			for
-				(int i = 0; i < c.lines.size(); i++) newState[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
-
+			std::vector<float> newState = { 0,0,0,0,0,0,0,0};
+			for	(int i = 0; i < c.lines.size(); i++) newState[i] = t.lineIntersection(c.lines[i][0].position, c.lines[i][1].position, i);
+			newState.push_back(c.pos.x);
+			newState.push_back(c.pos.y);
+			newState.push_back(c.angle);
+			newState.push_back(c.accV.x);
+			newState.push_back(c.accV.y);
+			newState.push_back(c.vel.x);
+			newState.push_back(c.vel.y);
 			//max q
-			std::vector<float> newActions = { 0,0,0,0,0,0,0,0 };
+			std::vector<float> newActions = { 0,0,0,0, };
 			network.decide(newState, newActions);
 			float a = std::max(newActions[0], newActions[1]); float b = std::max(newActions[2], newActions[3]);
 			float maxQ = std::max(a, b);
 
 			xp.push_back(expRep(state, newState, actions, cumulativeReward, maxQ));
+			cumulativeReward = 0;
+		}
 
-			if (descent >= 7 && reward == -100) {
-				descent = 0;
-				cumulativeReward *= discount;
-				float loss2 = cumulativeReward;
+		if (over) {
+				if (descent >= 10) {
+					descent = 0;
 
-				//std::sort(xp.begin(), xp.end(), [](const expRep &x, const expRep &y) {return x.reward < y.reward; });
+					//std::sort(xp.begin(), xp.end(), [](const expRep &x, const expRep &y) {return x.reward < y.reward; });
 
-				for (int n = 0; n < 300; n++) {
-					std::uniform_int<int> rxp(0, xp.size() - 1);
-					int random = rxp(engine);
-					//i and j for the weight looping, k for actions, h for hidden layer and some other shit aswell
-					for (int i = 11; i > -1; i--) {
-						for (int j = 0; j < 8; j++) {
-							for (int k = 0; k < 4; k++)
-								for (int h = 0; h < 8; h++) {
-									//actions[i] for 8-12, else neuron activation i > 7 w1
-									if (i > 7)
-										 network.weights[i][j] += lr * -weightG1(network.hiddenLayer[h], network.bias[i], network.weights[i][j]);
-									else network.weights[i][j] += lr * -weightG2(xp[random].state[h], network.bias[i], network.weights[k + 8][h]);
-									//same for the biases
-									if (i > 7)
-										 network.bias[i] += lr * -biasG1(network.hiddenLayer[h], network.bias[i], network.weights[i][j]);
-									else network.bias[i] += lr * -biasG2(xp[random].state[h], network.bias[i], network.weights[k + 8][h]);
+					for (int n = 0; n < 10; n++) {
+						std::uniform_int<int> rxp(0, xp.size() - 1);
+						int random = rxp(engine);
+						//calculate the new state
+						std::vector<float> newS;
+						network.decide(xp[random].newState, newS);
 
+						//adjust last layer weights
+						for (int i = 0; i < network.weights3.size(); i++) {
+							for (int j = 0; j < network.weights3[0].size(); j++) {
+								for (int input = 0; input < network.hiddenLayer2.size(); input++) {
+									for (int a = 0; a < 4; a++) {
+										network.weights3[i][j] += lr * -weightG1(xp[random].reward, xp[random].maxQ, newS[a], network.hiddenLayer2[input], network.bias[2], network.weights3[i][j]);
+										network.bias[2] += lr * -biasG1(xp[random].reward, xp[random].maxQ, newS[a], network.hiddenLayer2[input], network.bias[2], network.weights3[i][j]);
+									}
 								}
+							}
+						}
+						//ajdust second layer weights 
+						for (int i = 0; i < network.weights2.size(); i++) {
+							for (int j = 0; j < network.weights2[0].size(); j++) {
+								for (int input = 0; input < network.hiddenLayer1.size(); input++) {
+									for (int a = 0; a < 4; a++) {
+										for (int k = 0; k < 4; k++) {
+											network.weights2[i][j] += lr * -weightG2(xp[random].reward, xp[random].maxQ, newS[a], network.hiddenLayer1[input], network.bias[1], network.weights2[i][j], network.weights3[k][i]);
+											network.bias[1] += lr * -biasG2(xp[random].reward, xp[random].maxQ, newS[a], network.hiddenLayer1[input], network.bias[1], network.weights2[i][j], network.weights3[k][i]);
+										}
+									}
+								}
+							}
+						}
+						//adjust first layer weights 
+						for (int i = 0; i < network.weights1.size(); i++) {
+							for (int j = 0; j < network.weights1[0].size(); j++) {
+								for (int input = 0; input < 15; input++) {
+									for (int a = 0; a < 4; a++) {
+										for (int k = 0; k < 4; k++) {
+											for (int k1 = 0; k1 < 16; k1++) {
+												network.weights1[i][j] += lr * -weightG3(xp[random].reward, xp[random].maxQ, newS[a], xp[random].state[input], network.bias[1], network.weights2[i][j], network.weights3[k][i], network.weights2[k1][i]);
+												network.bias[0] += lr * -biasG3(xp[random].reward, xp[random].maxQ, newS[a], network.hiddenLayer1[input], network.bias[1], network.weights2[i][j], network.weights3[k][i], network.weights2[k1][i]);
+											}
+										}
+									}
+								}
+							}
 						}
 					}
-					cumulativeReward = 0;
+					iteration++;
 				}
-				iteration++;
-
-				float loss1 = 0, loss;
-				for (int i = 0; i < 12; i++) {
-					for (int j = 0; j < 8; j++) {
-						loss1 += network.weights[i][j];
-					}
-				}
-				loss = std::pow(loss2 - loss1, 2);
-				std::cout << loss << std::endl;
-			}
-			else {
-				descent++;
-				cumulativeReward = 0;
+				else descent++;
+			    
 			}
 
 			
@@ -238,7 +263,7 @@ int main() {
 			//draw
 			window.clear(Color::Black);
 			t.draw(window);
-			c.draw(window);
+			c.draw(window, isRandom);
 			for (int i = 0; i < r.rewards.size(); i++) window.draw(r.rewards[i], 2, Lines);
 			//for (int i = 0; i < c.lines.size(); i++) window.draw(c.lines[i], 2, Lines);
 			window.display();
@@ -257,36 +282,57 @@ void rotateCorner(float cx, float cy, float theta, Vector2f &c1) {
 	//translate back
 	c1.x = rotatedx1 + cx, c1.y = rotatedy1 + cy;
 }
+// ((- 2r - 2my + 2x) + 2i)
 
-
-float weightG1(float input, float bias,float weight) {
+float weightG1(float reward, float maxQ, float newS, float input, float bias,float weight) {
 	//partial derivate implementation
 	float x = weight * input + bias;
 	//partial in respect to z , a and c multiplied
-    return  -1 * input * sigmoid(x) * (1 - sigmoid(x)); 
+	return  ((-2 * reward - 2 * maxQ * discount + 2 * newS) + 2 *input) * input * sigmoid(x) * (1 - sigmoid(x));
 }
 
-float weightG2(float input , float bias, float weight) {
+float weightG2(float reward, float maxQ, float newS, float input , float bias, float weight, float weight1) {
 	//partial derivate implementation
 	float x = weight * input + bias;
 	//return gradient of w
-	return input * weight * -1 * sigmoid(x) * (1 - sigmoid(x));
+	return ((-2 * reward - 2 * maxQ * discount + 2 * newS) + 2 * input) * input * weight1 * sigmoid(x) * (1 - sigmoid(x));
 }
-
-float biasG1(float input, float bias, float weight) {
+float weightG3(float reward, float maxQ, float newS, float input, float bias, float weight, float weight1, float weight2) {
 	//partial derivate implementation
 	float x = weight * input + bias;
-	//partial in respect to z , a and c multiplied (z is just 1)
-	return -1 * sigmoid(x) * (1 - sigmoid(x));
+	//return gradient of w
+	return ((-2 * reward - 2 * maxQ * discount + 2 * newS) + 2 * input) * input * weight1 * weight2 * sigmoid(x) * (1 - sigmoid(x));
+
+}
+float biasG1(float reward, float maxQ, float newS, float input, float bias, float weight) {
+	//partial derivate implementation
+	float x = weight * input + bias;
+	if (x != x) {
+		int b = 0;
+	}
+	//partial in respect to z , a and c multiplied 
+	return ((-2 * reward - 2 * maxQ * discount + 2 * newS) + 2 * input) * sigmoid(x) * (1 - sigmoid(x));
 }
 
-float biasG2(float input, float bias, float weight) {
+float biasG2(float reward, float maxQ, float newS, float input, float bias, float weight, float weight1) {
 	//partial derivate implementation
 	float x = weight * input + bias;
 	//return gradient of the bias
-	return weight * -1 * (sigmoid(x) * (1 - sigmoid(x)));
+	return ((-2 * reward - 2 * maxQ * discount + 2 * newS) + 2 * input) * weight1 * (sigmoid(x) * (1 - sigmoid(x)));
+}
+
+float biasG3(float reward, float maxQ, float newS, float input, float bias, float weight, float weight1, float weight2) {
+	//partial derivate implementation
+	float x = weight * input + bias;
+	//return gradient of the bias
+	return ((-2 * reward - 2 * maxQ * discount + 2 * newS) + 2 * input) * weight1 * weight2 * (sigmoid(x) * (1 - sigmoid(x)));
 }
 
 float sigmoid(float x) {
-	return 1 / (1 + std::powf(2.718281, -x));
+	int k = 0;
+	if (x != 0) k = std::powf(2.718281, -x);
+	float y = (1 / (1 + k));
+	if (y != y) 
+		return 0;
+	else return y;
 }

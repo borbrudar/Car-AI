@@ -23,7 +23,7 @@ public:
 		pos = startPos;
 		distances.resize(8);
 	}
-	void draw(RenderWindow &window);
+	void draw(RenderWindow &window, bool isRandom);
 	void update(bool up, bool down, bool left, bool right);
 	void rotateCorner(Vector2f &c1);
 	std::vector<Vertex[2]> lines{ 8 };
